@@ -182,7 +182,7 @@ class AWS:
             else:
                 hosted_zone_id = fst
             dns_name = tok.get_identifier()
-            if region or weight:
+            if region or weight or failover:
                 identifier = tok.get_string()
             tok.get_eol()
             return cls(
@@ -366,6 +366,11 @@ class BindToR53Formatter(object):
                                 rrset, 'SetIdentifier',
                                 rdtype.identifier)
                             text_element(rrset, 'Region', str(rdtype.region))
+                        elif rdtype.failover:
+                            text_element(rrset, 'SetIdentifier',
+                                rdtype.identifier)
+                            text_element(rrset, 'Failover',
+                                rdtype.failover)
                         at = et.SubElement(rrset, 'AliasTarget')
                         text_element(
                             at, 'HostedZoneId',
@@ -385,6 +390,8 @@ class BindToR53Formatter(object):
                             text_element(rrset, 'Weight', str(rdtype.weight))
                         elif rdtype.region:
                             text_element(rrset, 'Region', str(rdtype.region))
+                        elif rdtype.failover:
+                            text_element(rrset, 'Failover', str(rdtype.failover))
                         text_element(rrset, 'TTL', str(rdataset.ttl))
                         rrs = et.SubElement(rrset, 'ResourceRecords')
                         rr = et.SubElement(rrs, 'ResourceRecord')
@@ -742,9 +749,9 @@ def cmd_instances(args, r53):
 
         if newvalue:
             if args.write_a_record:
-                rd = _create_rdataset('A', args.ttl, [newvalue], None, None, None)
+                rd = _create_rdataset('A', args.ttl, [newvalue], None, None, None, None)
             else:
-                rd = _create_rdataset('CNAME', args.ttl, [newvalue], None, None, None)
+                rd = _create_rdataset('CNAME', args.ttl, [newvalue], None, None, None, None)
             creates.append((name, rd))
 
     if not deletes and not creates:
@@ -812,7 +819,7 @@ def wait_for_sync(obj, r53):
 def cmd_rrcreate(args, r53):
     zone = _get_records(args, r53)
     name = dns.name.from_text(args.rr, zone.origin)
-    rdataset = _create_rdataset(args.type, args.ttl, args.values, args.weight, args.identifier, args.region)
+    rdataset = _create_rdataset(args.type, args.ttl, args.values, args.weight, args.identifier, args.region, args.failover)
 
     rdataset_old = None
     node = zone.get_node(args.rr)
@@ -1002,6 +1009,7 @@ def main(connection=None):
     parser_rrcreate.add_argument('-w', '--weight', type=int, help='record weight')
     parser_rrcreate.add_argument('-i', '--identifier', help='record set identifier')
     parser_rrcreate.add_argument('--region', help='region for latency-based routing')
+    parser_rrcreate.add_argument('--failover', help='failover type for dns failover routing')
     parser_rrcreate.add_argument('-r', '--replace', action='store_true', help='replace any existing record')
     parser_rrcreate.add_argument(
         '--wait', action='store_true', default=False, help='wait for changes to become live before exiting (default: '

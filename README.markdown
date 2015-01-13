@@ -172,6 +172,10 @@ inconsistent. You have been warned!
 
 Changelog
 ---------
+0.4.5
+
+- Add the arguments to properly allow creation of failover record types
+
 0.4.4
 
 - instances option (-i) to create internal records (@asmap)
